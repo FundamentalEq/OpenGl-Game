@@ -747,10 +747,10 @@ void CreateMirror(void)
     GameObject temp ;
     COLOR BaseMirrorColor = white ;
 
-    temp.height = 5 ,temp.width = 50 ;
+    temp.height = 5 ,temp.width = 500 ;
     temp.location = glm::vec3(0,0,0) ;
     temp.CenterOfRotation = temp.location ;
-    temp.direction = normalize(glm::vec3(-1,1,0)) ;
+    temp.direction = normalize(glm::vec3(1,-1,0)) ;
     temp.isRotating = true ;
     temp.object =  createRectangle(BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,temp.width,temp.height);
     Mirrors.pb(temp) ;
@@ -769,19 +769,28 @@ bool CheckRectangleCollision(GameObject &r1,GameObject &r2)
 
     prependicular = normalize(cross(glm::vec3(0,0,1),r2.direction)) ;
     FN(i,4)
-    {
         if(abs(dot(Points[i] - r2.location,prependicular))<= r2.height/2.0 && abs(dot(Points[i] - r2.location,r2.direction)) <= r2.width/2.0 )
-        {
-            cout<<"Prependicular is " ; FN(j,3) cout<<prependicular[j]<<" " ; cout<<endl ;
-            cout<<"Point is " ; FN(j,3) cout<<Points[i][j]<<" " ; cout<<endl ;
-            cout<<"R2 is " ; FN(j,3) cout<<r2.location[j]<<" " ; cout<<endl ;
-            cout<<"dot is "<<dot(Points[i] - r2.location,prependicular)<<endl ;
-            cout<<"r2:height is "<<(r2.height/2.0)<<endl ;
-            exit(0) ;
             return true ;
-        }
-    }
     return false ;
+}
+void reflect(GameObject &r1,glm::vec3 &location,glm::vec3 &direction)
+{
+    glm::vec3 prependicular = normalize(cross(direction,glm::vec3(0,0,1))),num,deno,X ;
+    if(dot(prependicular,r1.location - location) < 0 ) prependicular = prependicular * (float)-1 ;
+    num = cross(r1.location - location,r1.direction) ;
+    deno = cross(direction,r1.direction) ;
+    float t = num.length() / deno.length() ;
+    if(dot(num,deno) < 0 ) t*=-1 ;
+    X = location + direction * t ;
+    r1.direction += X ;
+    r1.direction = prependicular*abs(dot(r1.direction,prependicular)) + direction*(dot(r1.direction,direction)) ;
+    r1.direction -= X ;
+    r1.direction = normalize(r1.direction) ;
+    r1.location -= X ;
+    r1.location = prependicular*abs(dot(r1.location,prependicular)) + direction*(dot(r1.location,direction)) ;
+    r1.location += X ;
+    r1.CenterOfRotation = r1.location ;
+    r1.speed = r1.direction * SpeedLaser ;
 }
 void DetectCollisions(void)
 {
@@ -789,7 +798,16 @@ void DetectCollisions(void)
     for(auto &mirror:Mirrors) for(auto &it2:Lasers)
     {
         auto &laser = it2.second ;
-        if(CheckRectangleCollision(laser,mirror)) cout<<"Collision detected"<<endl ;
+        if(CheckRectangleCollision(laser,mirror))
+        {
+            cout<<"Collision detected"<<endl ;
+            cout<<"Direction is " ; FN(j,3) cout<<laser.direction[j]<<" " ; cout<<endl ;
+            cout<<"Location is " ; FN(j,3) cout<<laser.location[j]<<" " ; cout<<endl ;
+            reflect(laser,mirror.location,mirror.direction) ;
+            cout<<"Direction is " ; FN(j,3) cout<<laser.direction[j]<<" " ; cout<<endl ;
+            cout<<"Location is " ; FN(j,3) cout<<laser.location[j]<<" " ; cout<<endl ;
+            // exit(0) ;
+        }
     }
 
 }
