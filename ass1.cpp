@@ -102,6 +102,8 @@ int LaserNumber ;
 // Timers
 double last_update_time = glfwGetTime();
 double current_time;
+// KillList
+vi KillThem ;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
@@ -566,7 +568,6 @@ void draw (GLFWwindow* window)
         {
             Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
             float theta = FindAngle(FindCurrentDirection(it.location,it.CenterOfRotation),it.direction) ;
-            cout<<"theta is "<<theta<<endl ;
             Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
             Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
         }
@@ -697,6 +698,7 @@ void CreateLaser(void)
     GameObject temp ;
     COLOR BaseBGColor = red ;
 
+    cout<<"Laser Shot"<<endl ;
     temp.width = 20 , temp.height = 5 ;
     temp.direction = Cannon[1].direction ;
     temp.speed = temp.direction * SpeedLaser ;
@@ -709,11 +711,17 @@ void CreateLaser(void)
 }
 void MoveLasers(void)
 {
+    glm::vec3 nose ;
     for(auto &it2:Lasers)
     {
         auto &it = it2.second ;
         it.location = it.CenterOfRotation = it.location + it.speed ;
+        nose = it.location + it.direction*it.width ;
+        if(nose[1]<=GamePlayDownExtreme || nose[1]>=GamePlayUpExtreme || nose[0]<=LeftExtreme ||nose[0]>=RightExtreme)
+            KillThem.pb(it.ID) ;
     }
+    for(auto id:KillThem) Lasers.erase(id),cout<<"Laser Killed"<<endl ;
+    KillThem.clear() ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
