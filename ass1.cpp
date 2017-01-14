@@ -83,7 +83,8 @@ float RightExtreme = 400.0 ;
 float UpExtreme = 300.0 ;
 float DownExtreme = -300.0 ;
 float XWidth,YWidth ;
-
+float GamePlayDownExtreme = DownExtreme + 50 ;
+float GamePlayUpExtreme = UpExtreme - 100 ;
 // Speed
 float SpeedY = (UpExtreme - DownExtreme)/100.0 ;
 float SpeedX = (RightExtreme - LeftExtreme)/100.0 ;
@@ -599,14 +600,14 @@ void CreateCannon(void)
     GameObject temp ;
     COLOR BaseCannonColor = skyblue ;
 
-    // temp.object =  createRectangle(BaseCannonColor,BaseCannonColor,BaseCannonColor,BaseCannonColor,0.4,0.75);
-    temp.object = CreateCircle(BaseCannonColor,20,25,1) ;
+    temp.radius = 20 ;
+    temp.object = CreateCircle(BaseCannonColor,temp.radius,25,1) ;
     temp.location = glm::vec3(LeftExtreme+20,0,0);
     temp.speed = glm::vec3(0,SpeedY,0) ;
     Cannon.pb(temp) ;
 
-    // temp.object =  createRectangle(black,BaseCannonColor,BaseCannonColor,BaseCannonColor,0.2,0.2);
-    temp.object = CreateCircle(blue,10,25,1) ;
+    temp.radius = 10 ;
+    temp.object = CreateCircle(blue,temp.radius,25,1) ;
     temp.location = glm::vec3(LeftExtreme+50,0,0);
     temp.speed = glm::vec3(0,SpeedY,0) ;
     temp.CenterOfRotation = glm::vec3(LeftExtreme+20,0,0) ;
@@ -615,6 +616,18 @@ void CreateCannon(void)
 }
 void MoveCannon(int dir)
 {
+     bool allowed = true ;
+     glm::vec3 temp ;
+     for(auto &it:Cannon)
+     {
+         temp = it.location + it.speed*(float)dir ;
+         if(temp[1] + it.radius >= GamePlayUpExtreme || temp[1] - it.radius <= GamePlayDownExtreme)
+         {
+             allowed = false ;
+             break ;
+         }
+     }
+     if(!allowed) return ;
      for(auto &it:Cannon)
      {
          it.location = it.location + it.speed*(float)dir ;
@@ -638,13 +651,13 @@ void CreateBackGround(void)
     //Bucket Line
     temp.height = 5 ,temp.width = XWidth ;
     temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
-    temp.location = glm::vec3(0,UpExtreme - 100 ,0) ;
+    temp.location = glm::vec3(0,GamePlayUpExtreme - temp.height/2 ,0) ;
     Background.pb(temp) ;
 
     // Top Line
     temp.height = 5 ,temp.width = XWidth ;
     temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
-    temp.location = glm::vec3(0,DownExtreme + 50 ,0) ;
+    temp.location = glm::vec3(0,GamePlayDownExtreme + temp.height/2 ,0) ;
     Background.pb(temp) ;
 }
 void initGL (GLFWwindow* window, int width, int height)
