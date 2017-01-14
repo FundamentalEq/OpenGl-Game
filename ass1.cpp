@@ -78,10 +78,12 @@ COLOR white = {255/255.0,255/255.0,255/255.0};
 COLOR score = {117/255.0,78/255.0,40/255.0};
 
 // Screen Extremities
-float LeftExtreme = -4.0 ;
-float RightExtreme = 4.0 ;
-float UpExtreme = 4.0 ;
-float DownExtreme = -4.0 ;
+float LeftExtreme = -400.0 ;
+float RightExtreme = 400.0 ;
+float UpExtreme = 300.0 ;
+float DownExtreme = -300.0 ;
+float XWidth,YWidth ;
+
 // Speed
 float SpeedY = (UpExtreme - DownExtreme)/100.0 ;
 float SpeedX = (RightExtreme - LeftExtreme)/100.0 ;
@@ -471,6 +473,29 @@ VAO* CreateCircle(COLOR color,float radius,int parts,bool fill)
 //     temp.location[0] = -4 ,temp.location[1] = 0 ,temp.location[2] = 0 ;
 //     Cannon.pb(temp) ;
 // }
+
+/********************
+    CURSOR
+*********************/
+void cursor_enter_callback(GLFWwindow* window, int entered)
+{
+    if (entered) CursorOnScreen = 1 ;
+    else CursorOnScreen = 0 ;
+}
+// Returns the mouse coordinates translated according to our coordinate system
+glm::vec3 GetMouseCoordinates(GLFWwindow* window)
+{
+    double CursorX,CursorY ;
+    glfwGetCursorPos(window, &CursorX, &CursorY) ;
+    return glm::vec3(CursorX+LeftExtreme,CursorY+DownExtreme,0) ;
+}
+// find angle from A to B : assuming both are normalized vectors 
+float FindAngle(glm::vec3 A,glm::vec3 B)
+{
+    float theta = acos(dot(A,B)) ;
+    if(cross(A,B)[2] < 0 ) theta *= -1 ;
+    return theta ;
+}
 void draw (GLFWwindow* window)
 {
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -485,9 +510,13 @@ void draw (GLFWwindow* window)
     for(auto it:Cannon)
     {
         Matrices.model = glm::translate (it.location);
-        if(!it.fixed)
+        if(it.isRotating)
         {
-            
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
+            cout<<"theta is "<<theta<<endl ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
         }
         MVP = VP * Matrices.model; // MVP = p * V * M
         glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -544,11 +573,7 @@ GLFWwindow* initGLFW (int width, int height)
 
     return window;
 }
-void cursor_enter_callback(GLFWwindow* window, int entered)
-{
-    if (entered) CursorOnScreen = 1 ;
-    else CursorOnScreen = 0 ;
-}
+
 /* Initialize the OpenGL rendering properties */
 /* Add all the models to be created here */
 
@@ -561,29 +586,34 @@ void CreateCannon(void)
     COLOR BaseCannonColor = skyblue ;
 
     // temp.object =  createRectangle(BaseCannonColor,BaseCannonColor,BaseCannonColor,BaseCannonColor,0.4,0.75);
-    temp.object = CreateCircle(BaseCannonColor,0.2,25,1) ;
-    temp.location = glm::vec3(LeftExtreme+0.2,0,0);
+    temp.object = CreateCircle(BaseCannonColor,20,25,1) ;
+    temp.location = glm::vec3(LeftExtreme+20,0,0);
     temp.speed = glm::vec3(0,SpeedY,0) ;
     Cannon.pb(temp) ;
 
     // temp.object =  createRectangle(black,BaseCannonColor,BaseCannonColor,BaseCannonColor,0.2,0.2);
-    temp.object = CreateCircle(BaseCannonColor,0.1,25,1) ;
-    temp.location = glm::vec3(LeftExtreme+0.5,0,0);
+    temp.object = CreateCircle(blue,10,25,1) ;
+    temp.location = glm::vec3(LeftExtreme+50,0,0);
     temp.speed = glm::vec3(0,SpeedY,0) ;
-    temp.CenterOfRotation = glm::vec3(LeftExtreme+0.2,0,0) ;
-    temp.fixed = false ;
+    temp.CenterOfRotation = glm::vec3(LeftExtreme+20,0,0) ;
+    temp.isRotating = true ;
     Cannon.pb(temp) ;
 }
-void MoveCannon(int dir) { for(auto &it:Cannon)  it.location = it.location + it.speed*(float)dir ; }
+void MoveCannon(int dir)
+{
+     for(auto &it:Cannon)
+     {
+         it.location = it.location + it.speed*(float)dir ;
+         if(it.isRotating) it.CenterOfRotation += it.speed*(float)dir ;
+     }
+ }
 void RotateCannon(GLFWwindow* window)
 {
     if(!CursorOnScreen) return ;
-    double CursorX,CursorY ;
-    glfwGetCursorPos(window, &CursorX, &CursorY) ;
-    cout<<CursorX << " " << CursorY<< endl ;
-    GameObject &target = Cannon[1] ;
-    target.direction = normalize(glm::vec3(CursorX,CursorY,0) - target.location) ;
+    glm::vec3 Mouse = GetMouseCoordinates(window) ;
+    for(auto &it:Cannon) if(it.isRotating) it.direction = normalize(Mouse - it.CenterOfRotation) ;
 }
+
 void initGL (GLFWwindow* window, int width, int height)
 {
     /* Objects should be created before any other gl function and shaders */
@@ -616,8 +646,8 @@ void initGL (GLFWwindow* window, int width, int height)
 
 int main (int argc, char** argv)
 {
-	int width = 600;
-	int height = 600;
+	int width = 800; XWidth = width ;
+	int height = 600; YWidth = height ;
 
     GLFWwindow* window = initGLFW(width, height);
     glfwSetCursorEnterCallback(window, cursor_enter_callback);
