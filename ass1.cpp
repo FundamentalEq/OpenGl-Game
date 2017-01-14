@@ -635,8 +635,16 @@ void CreateBackGround(void)
     GameObject temp ;
     COLOR BaseBGColor = white ;
 
+    //Bucket Line
+    temp.height = 5 ,temp.width = XWidth ;
     temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
     temp.location = glm::vec3(0,UpExtreme - 100 ,0) ;
+    Background.pb(temp) ;
+
+    // Top Line
+    temp.height = 5 ,temp.width = XWidth ;
+    temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
+    temp.location = glm::vec3(0,DownExtreme + 50 ,0) ;
     Background.pb(temp) ;
 }
 void initGL (GLFWwindow* window, int width, int height)
