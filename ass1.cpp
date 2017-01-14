@@ -670,7 +670,7 @@ void CreateBackGround(void)
     // Top Line
     temp.height = 5 ,temp.width = XWidth ;
     temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
-    temp.location = glm::vec3(0,GamePlayDownExtreme + temp.height/2 ,0) ;
+    temp.location = glm::vec3(0,GamePlayDownExtreme - temp.height/2 ,0) ;
     Background.pb(temp) ;
 }
 /*****************
