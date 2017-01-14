@@ -124,6 +124,7 @@ bool CursorOnScreen ;
 vector< GameObject > Cannon ;
 vector< GameObject > Background ;
 map<int,GameObject> Lasers ;
+vector< GameObject > Mirrors ;
 GLuint programID;
 
 /* Function to load Shaders - Use it as it is */
@@ -575,7 +576,20 @@ void draw (GLFWwindow* window)
         glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
         draw3DObject(it.object);
     }
-
+    for(auto it:Mirrors)
+    {
+        Matrices.model = glm::translate (it.location);
+        if(it.isRotating)
+        {
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(FindCurrentDirection(it.location,it.CenterOfRotation),it.direction) ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
+        }
+        MVP = VP * Matrices.model; // MVP = p * V * M
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(it.object);
+    }
 
 }
 
@@ -723,6 +737,22 @@ void MoveLasers(void)
     for(auto id:KillThem) Lasers.erase(id),cout<<"Laser Killed"<<endl ;
     KillThem.clear() ;
 }
+/*******************
+    MIRROR
+********************/
+void CreateMirror(void)
+{
+    GameObject temp ;
+    COLOR BaseMirrorColor = white ;
+
+    temp.height = 5 ,temp.width = 50 ;
+    temp.location = glm::vec3(0,0,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.direction = normalize(glm::vec3(-1,1,0)) ;
+    temp.isRotating = true ;
+    temp.object =  createRectangle(BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,temp.width,temp.height);
+    Mirrors.pb(temp) ;
+}
 void initGL (GLFWwindow* window, int width, int height)
 {
     /* Objects should be created before any other gl function and shaders */
@@ -732,6 +762,7 @@ void initGL (GLFWwindow* window, int width, int height)
 
     CreateCannon() ;
     CreateBackGround() ;
+    CreateMirror() ;
 
     // Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
