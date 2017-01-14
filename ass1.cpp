@@ -94,11 +94,15 @@ int GoDown = 1 ;
 // Function Declaration
 void MoveCannon(int) ;
 void RotateCannon(GLFWwindow*) ;
+void CreateLaser(void) ;
+// Global Iterators
+int LaserNumber ;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
     float height,width,theta,radius ;
     bool fixed,isRotating ;
+    int ID ;
     struct VAO * object ;
     GameObject(void)
     {
@@ -112,6 +116,7 @@ struct GameObject
 bool CursorOnScreen ;
 vector< GameObject > Cannon ;
 vector< GameObject > Background ;
+map<int,GameObject> Lasers ;
 GLuint programID;
 
 /* Function to load Shaders - Use it as it is */
@@ -351,6 +356,7 @@ void mouseButton (GLFWwindow* window, int button, int action, int mods)
         case GLFW_MOUSE_BUTTON_LEFT:
             if (action == GLFW_RELEASE)
                 // triangle_rot_dir *= -1;
+                CreateLaser() ;
             break;
         case GLFW_MOUSE_BUTTON_RIGHT:
             if (action == GLFW_RELEASE) {
@@ -537,6 +543,22 @@ void draw (GLFWwindow* window)
         glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
         draw3DObject(it.object);
     }
+    for(auto it2:Lasers)
+    {
+        auto it = it2.second ;
+        Matrices.model = glm::translate (it.location);
+        if(it.isRotating)
+        {
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
+        }
+        MVP = VP * Matrices.model; // MVP = p * V * M
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(it.object);
+    }
+
 
 }
 
@@ -616,18 +638,9 @@ void CreateCannon(void)
 }
 void MoveCannon(int dir)
 {
-     bool allowed = true ;
-     glm::vec3 temp ;
-     for(auto &it:Cannon)
-     {
-         temp = it.location + it.speed*(float)dir ;
-         if(temp[1] + it.radius >= GamePlayUpExtreme || temp[1] - it.radius <= GamePlayDownExtreme)
-         {
-             allowed = false ;
-             break ;
-         }
-     }
-     if(!allowed) return ;
+     GameObject &big = Cannon[0] ;
+     glm::vec3 temp = big.location + big.speed*(float)dir ;
+     if(temp[1] + big.radius >= GamePlayUpExtreme || temp[1] - big.radius <= GamePlayDownExtreme) return ;
      for(auto &it:Cannon)
      {
          it.location = it.location + it.speed*(float)dir ;
@@ -659,6 +672,21 @@ void CreateBackGround(void)
     temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
     temp.location = glm::vec3(0,GamePlayDownExtreme + temp.height/2 ,0) ;
     Background.pb(temp) ;
+}
+/*****************
+    LASER
+******************/
+void CreateLaser(void)
+{
+    GameObject temp ;
+    COLOR BaseBGColor = red ;
+
+    // temp.direction = Cannon[1].direction ;
+    temp.location = Cannon[1].location + Cannon[1].direction*(float)(Cannon[1].radius) ;
+    temp.width = 20 , temp.height = 5 ;
+    temp.ID = LaserNumber++ ;
+    temp.object = createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,temp.width,temp.height) ;
+    Lasers[temp.ID] = temp ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
