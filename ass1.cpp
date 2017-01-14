@@ -100,6 +100,7 @@ void MoveLasers(void) ;
 void DetectCollisions(void) ;
 // Global Iterators
 int LaserNumber ;
+int BlockNumber ;
 // Timers
 double last_update_time = glfwGetTime();
 double current_time;
@@ -126,6 +127,7 @@ vector< GameObject > Cannon ;
 vector< GameObject > Background ;
 map<int,GameObject> Lasers ;
 vector< GameObject > Mirrors ;
+map<int,GameObject > Blocks ;
 GLuint programID;
 
 /* Function to load Shaders - Use it as it is */
@@ -747,8 +749,8 @@ void CreateMirror(void)
     GameObject temp ;
     COLOR BaseMirrorColor = white ;
 
-    temp.height = 5 ,temp.width = 500 ;
-    temp.location = glm::vec3(0,0,0) ;
+    temp.height = 5 ,temp.width = 100 ;
+    temp.location = glm::vec3(50,50,0) ;
     temp.CenterOfRotation = temp.location ;
     temp.direction = normalize(glm::vec3(1,-1,0)) ;
     temp.isRotating = true ;
@@ -801,6 +803,19 @@ void DetectCollisions(void)
         if(CheckRectangleCollision(laser,mirror))  reflect(laser,mirror.location,mirror.direction) ;
     }
 
+}
+/*******************
+    BLOCKS
+*******************/
+void CreateBlocks(void)
+{
+    GameObject temp ;
+    COLOR BaseBlockColor = white ;
+
+    //Bucket Line
+    temp.height = 5 ,temp.width = 5 ;
+    temp.object =  createRectangle(BaseBlockColor,BaseBlockColor,BaseBlockColor,BaseBlockColor,temp.width,temp.height);
+    Background.pb(temp) ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
