@@ -97,6 +97,7 @@ void MoveCannon(int) ;
 void RotateCannon(GLFWwindow*) ;
 void CreateLaser(void) ;
 void MoveLasers(void) ;
+void DetectCollisions(void) ;
 // Global Iterators
 int LaserNumber ;
 // Timers
@@ -529,6 +530,7 @@ void draw (GLFWwindow* window)
 
     glm::mat4 MVP;	// MVP = Projection * View * Model
     RotateCannon(window) ;
+    DetectCollisions() ;
     if(current_time - last_update_time >=0.01)
     {
         MoveLasers() ;
@@ -752,6 +754,44 @@ void CreateMirror(void)
     temp.isRotating = true ;
     temp.object =  createRectangle(BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,temp.width,temp.height);
     Mirrors.pb(temp) ;
+}
+/*******************
+    COLLISIONS
+********************/
+bool CheckRectangleCollision(GameObject &r1,GameObject &r2)
+{
+    glm::vec3 prependicular = normalize(cross(r1.direction,glm::vec3(0,0,1))) ;
+    glm::vec3 Points[4] ;
+    Points[0] = r1.location + r1.direction*(r1.width/2) + prependicular*(r1.height/2) ;
+    Points[1] = r1.location + r1.direction*(r1.width/2) - prependicular*(r1.height/2) ;
+    Points[2] = r1.location - r1.direction*(r1.width/2) + prependicular*(r1.height/2) ;
+    Points[3] = r1.location - r1.direction*(r1.width/2) - prependicular*(r1.height/2) ;
+
+    prependicular = normalize(cross(glm::vec3(0,0,1),r2.direction)) ;
+    FN(i,4)
+    {
+        if(abs(dot(Points[i] - r2.location,prependicular))<= r2.height/2.0 && abs(dot(Points[i] - r2.location,r2.direction)) <= r2.width/2.0 )
+        {
+            cout<<"Prependicular is " ; FN(j,3) cout<<prependicular[j]<<" " ; cout<<endl ;
+            cout<<"Point is " ; FN(j,3) cout<<Points[i][j]<<" " ; cout<<endl ;
+            cout<<"R2 is " ; FN(j,3) cout<<r2.location[j]<<" " ; cout<<endl ;
+            cout<<"dot is "<<dot(Points[i] - r2.location,prependicular)<<endl ;
+            cout<<"r2:height is "<<(r2.height/2.0)<<endl ;
+            exit(0) ;
+            return true ;
+        }
+    }
+    return false ;
+}
+void DetectCollisions(void)
+{
+    //Collisions between laser and mirrors
+    for(auto &mirror:Mirrors) for(auto &it2:Lasers)
+    {
+        auto &laser = it2.second ;
+        if(CheckRectangleCollision(laser,mirror)) cout<<"Collision detected"<<endl ;
+    }
+
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
