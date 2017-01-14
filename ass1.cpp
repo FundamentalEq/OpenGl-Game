@@ -798,16 +798,7 @@ void DetectCollisions(void)
     for(auto &mirror:Mirrors) for(auto &it2:Lasers)
     {
         auto &laser = it2.second ;
-        if(CheckRectangleCollision(laser,mirror))
-        {
-            cout<<"Collision detected"<<endl ;
-            cout<<"Direction is " ; FN(j,3) cout<<laser.direction[j]<<" " ; cout<<endl ;
-            cout<<"Location is " ; FN(j,3) cout<<laser.location[j]<<" " ; cout<<endl ;
-            reflect(laser,mirror.location,mirror.direction) ;
-            cout<<"Direction is " ; FN(j,3) cout<<laser.direction[j]<<" " ; cout<<endl ;
-            cout<<"Location is " ; FN(j,3) cout<<laser.location[j]<<" " ; cout<<endl ;
-            // exit(0) ;
-        }
+        if(CheckRectangleCollision(laser,mirror))  reflect(laser,mirror.location,mirror.direction) ;
     }
 
 }
