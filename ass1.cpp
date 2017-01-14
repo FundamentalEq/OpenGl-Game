@@ -110,6 +110,7 @@ struct GameObject
 // Global Variables
 bool CursorOnScreen ;
 vector< GameObject > Cannon ;
+vector< GameObject > Background ;
 GLuint programID;
 
 /* Function to load Shaders - Use it as it is */
@@ -489,7 +490,7 @@ glm::vec3 GetMouseCoordinates(GLFWwindow* window)
     glfwGetCursorPos(window, &CursorX, &CursorY) ;
     return glm::vec3(CursorX+LeftExtreme,CursorY+DownExtreme,0) ;
 }
-// find angle from A to B : assuming both are normalized vectors 
+// find angle from A to B : assuming both are normalized vectors
 float FindAngle(glm::vec3 A,glm::vec3 B)
 {
     float theta = acos(dot(A,B)) ;
@@ -514,7 +515,20 @@ void draw (GLFWwindow* window)
         {
             Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
             float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
-            cout<<"theta is "<<theta<<endl ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
+        }
+        MVP = VP * Matrices.model; // MVP = p * V * M
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(it.object);
+    }
+    for(auto it:Background)
+    {
+        Matrices.model = glm::translate (it.location);
+        if(it.isRotating)
+        {
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
             Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
             Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
         }
@@ -613,7 +627,18 @@ void RotateCannon(GLFWwindow* window)
     glm::vec3 Mouse = GetMouseCoordinates(window) ;
     for(auto &it:Cannon) if(it.isRotating) it.direction = normalize(Mouse - it.CenterOfRotation) ;
 }
+/******************
+    BACKGROUND
+*******************/
+void CreateBackGround(void)
+{
+    GameObject temp ;
+    COLOR BaseBGColor = white ;
 
+    temp.object =  createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,XWidth,5);
+    temp.location = glm::vec3(0,UpExtreme - 100 ,0) ;
+    Background.pb(temp) ;
+}
 void initGL (GLFWwindow* window, int width, int height)
 {
     /* Objects should be created before any other gl function and shaders */
@@ -622,6 +647,7 @@ void initGL (GLFWwindow* window, int width, int height)
 
 
     CreateCannon() ;
+    CreateBackGround() ;
 
     // Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
