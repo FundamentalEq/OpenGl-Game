@@ -88,6 +88,7 @@ float GamePlayUpExtreme = UpExtreme - 100 ;
 // Speed
 float SpeedY = (UpExtreme - DownExtreme)/100.0 ;
 float SpeedX = (RightExtreme - LeftExtreme)/100.0 ;
+float SpeedLaser = (SpeedX + SpeedY)/4 ;
 // Direction
 int GoUp = -1 ;
 int GoDown = 1 ;
@@ -95,8 +96,12 @@ int GoDown = 1 ;
 void MoveCannon(int) ;
 void RotateCannon(GLFWwindow*) ;
 void CreateLaser(void) ;
+void MoveLasers(void) ;
 // Global Iterators
 int LaserNumber ;
+// Timers
+double last_update_time = glfwGetTime();
+double current_time;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
@@ -504,6 +509,12 @@ float FindAngle(glm::vec3 A,glm::vec3 B)
     if(cross(A,B)[2] < 0 ) theta *= -1 ;
     return theta ;
 }
+glm::vec3 FindCurrentDirection(glm::vec3 A,glm::vec3 B)
+{
+    glm::vec3 C = A-B ;
+    if(C == glm::vec3(0,0,0)) return glm::vec3(1,0,0) ;
+    return normalize(C) ;
+}
 void draw (GLFWwindow* window)
 {
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -515,6 +526,10 @@ void draw (GLFWwindow* window)
 
     glm::mat4 MVP;	// MVP = Projection * View * Model
     RotateCannon(window) ;
+    if(current_time - last_update_time >=0.01)
+    {
+        MoveLasers() ;
+    }
     for(auto it:Cannon)
     {
         Matrices.model = glm::translate (it.location);
@@ -550,7 +565,8 @@ void draw (GLFWwindow* window)
         if(it.isRotating)
         {
             Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
-            float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
+            float theta = FindAngle(FindCurrentDirection(it.location,it.CenterOfRotation),it.direction) ;
+            cout<<"theta is "<<theta<<endl ;
             Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
             Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
         }
@@ -681,12 +697,23 @@ void CreateLaser(void)
     GameObject temp ;
     COLOR BaseBGColor = red ;
 
-    // temp.direction = Cannon[1].direction ;
-    temp.location = Cannon[1].location + Cannon[1].direction*(float)(Cannon[1].radius) ;
     temp.width = 20 , temp.height = 5 ;
+    temp.direction = Cannon[1].direction ;
+    temp.speed = temp.direction * SpeedLaser ;
+    temp.location = Cannon[0].location + Cannon[1].direction*(float)(Cannon[0].radius + Cannon[1].radius + temp.width) ;
+    temp.CenterOfRotation = temp.location ;
     temp.ID = LaserNumber++ ;
+    temp.isRotating = true ;
     temp.object = createRectangle(BaseBGColor,BaseBGColor,BaseBGColor,BaseBGColor,temp.width,temp.height) ;
     Lasers[temp.ID] = temp ;
+}
+void MoveLasers(void)
+{
+    for(auto &it2:Lasers)
+    {
+        auto &it = it2.second ;
+        it.location = it.CenterOfRotation = it.location + it.speed ;
+    }
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
@@ -728,7 +755,6 @@ int main (int argc, char** argv)
     glfwSetCursorEnterCallback(window, cursor_enter_callback);
 	initGL (window, width, height);
 
-    double last_update_time = glfwGetTime(), current_time;
 
     /* Draw in loop */
     while (!glfwWindowShouldClose(window)) {
