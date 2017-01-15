@@ -110,6 +110,10 @@ double LastBlockUpdateTime = glfwGetTime();
 double current_time;
 // KillList
 vi KillThem ;
+// Camera
+float x_change = 0; //For the camera pan
+float y_change = 0; //For the camera pan
+float zoom_camera = 1;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
@@ -134,6 +138,7 @@ vector< GameObject > Mirrors ;
 map<int,GameObject > Blocks ;
 vector< GameObject > Bucket ;
 GLuint programID;
+
 
 /* Function to load Shaders - Use it as it is */
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path) {
@@ -492,6 +497,30 @@ VAO* CreateCircle(COLOR color,float radius,int parts,bool fill)
     if(fill) return create3DObject(GL_TRIANGLES, (parts*9)/3, vertex_buffer_data, color_buffer_data, GL_FILL);
     else return create3DObject(GL_TRIANGLES, (parts*9)/3, vertex_buffer_data, color_buffer_data, GL_LINE);
 }
+/*****************
+    ZOOM
+*****************/
+void mousescroll(GLFWwindow* window, double xoffset, double yoffset)
+{
+    if (yoffset==-1) {
+        zoom_camera /= 1.1; //make it bigger than current size
+    }
+    else if(yoffset==1){
+        zoom_camera *= 1.1; //make it bigger than current size
+    }
+    if (zoom_camera<=1) {
+        zoom_camera = 1;
+    }
+    if (zoom_camera>=4) {
+        zoom_camera=4;
+    }
+    if(x_change + LeftExtreme/zoom_camera < LeftExtreme)  x_change=LeftExtreme - LeftExtreme/zoom_camera;
+    else if(x_change+RightExtreme/zoom_camera>RightExtreme) x_change=RightExtreme-RightExtreme/zoom_camera;
+    if(y_change+ DownExtreme/zoom_camera< DownExtreme) y_change=DownExtreme + DownExtreme/zoom_camera;
+    else if(y_change+UpExtreme/zoom_camera > UpExtreme) y_change=UpExtreme - UpExtreme/zoom_camera;
+    Matrices.projection = glm::ortho((float)(LeftExtreme/zoom_camera+x_change), (float)(RightExtreme/zoom_camera+x_change), (float)(UpExtreme/zoom_camera+y_change), (float)(DownExtreme/zoom_camera+y_change), 0.1f, 500.0f);
+}
+
 /********************
     CURSOR
 *********************/
@@ -676,7 +705,7 @@ GLFWwindow* initGLFW (int width, int height)
 
     /* Register function to handle mouse click */
     glfwSetMouseButtonCallback(window, mouseButton);  // mouse button clicks
-
+    glfwSetScrollCallback(window, mousescroll);
     return window;
 }
 
@@ -925,7 +954,7 @@ void CreateBuckets(void)
 }
 void MoveBucket(int BucketNumber)
 {
-    
+
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
