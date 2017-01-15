@@ -132,6 +132,7 @@ vector< GameObject > Background ;
 map<int,GameObject> Lasers ;
 vector< GameObject > Mirrors ;
 map<int,GameObject > Blocks ;
+vector< GameObject > Bucket ;
 GLuint programID;
 
 /* Function to load Shaders - Use it as it is */
@@ -326,6 +327,9 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_X:
                 // do something ..
                 break;
+            case GLFW_KEY_SPACE :
+                CreateLaser() ;
+                break ;
             default:
                 break;
         }
@@ -488,15 +492,6 @@ VAO* CreateCircle(COLOR color,float radius,int parts,bool fill)
     if(fill) return create3DObject(GL_TRIANGLES, (parts*9)/3, vertex_buffer_data, color_buffer_data, GL_FILL);
     else return create3DObject(GL_TRIANGLES, (parts*9)/3, vertex_buffer_data, color_buffer_data, GL_LINE);
 }
-
-// void createRectangle (vector<GameObject> &A,COLOR colorA, COLOR colorB, COLOR colorC, COLOR colorD, float height, float width)
-// {
-//     GameObject temp ;
-//     temp.object =  createRectangle(colorA,colourB,colourC,colourD,2,2);
-//     temp.location[0] = -4 ,temp.location[1] = 0 ,temp.location[2] = 0 ;
-//     Cannon.pb(temp) ;
-// }
-
 /********************
     CURSOR
 *********************/
@@ -620,6 +615,20 @@ void draw (GLFWwindow* window)
         glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
         draw3DObject(it.object);
     }
+    for(auto it:Bucket)
+    {
+        Matrices.model = glm::translate (it.location);
+        if(it.isRotating)
+        {
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
+        }
+        MVP = VP * Matrices.model; // MVP = p * V * M
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(it.object);
+    }
 }
 
 /* Initialise glfw window, I/O callbacks and the renderer to use */
@@ -639,7 +648,7 @@ GLFWwindow* initGLFW (int width, int height)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    window = glfwCreateWindow(width, height, "Sample OpenGL 3.3 Application", NULL, NULL);
+    window = glfwCreateWindow(width, height, "Shoot It Out", NULL, NULL);
 
     if (!window) {
         glfwTerminate();
@@ -859,13 +868,12 @@ void DetectCollisions(void)
 /*******************
     BLOCKS
 *******************/
-int RandomNo(int limit) { int ret = rand()%limit ; cout<<"Random Number is "<<ret<<endl ; return ret ;}
+int RandomNo(int limit) { return rand()%limit ;}
 COLOR Colors[] = {red,green,red,green,black} ;
 float FindBlockX(float width)
 {
     float X = LeftExtreme + 2*(Cannon[0].radius + Cannon[1].radius) + width/2 ;
     float Y = RightExtreme - width/2 ;
-    cout<<"X is "<<X<<endl<<"Y is "<<Y<<endl ;
     return X + RandomNo((int)ceil(Y-X+1)) ;
 }
 void CreateBlocks(void)
@@ -896,6 +904,29 @@ void MoveBlocks(void)
     for(auto id:KillThem) Blocks.erase(id),cout<<"Block Killed"<<endl ;
     KillThem.clear() ;
 }
+/********************
+    BUCKETS
+********************/
+void CreateBuckets(void)
+{
+    GameObject temp ;
+    COLOR BaseBucketColor = red ;
+
+    temp.height = 90 , temp.width = 120 ;
+    temp.CenterOfRotation = temp.location = glm::vec3(LeftExtreme + temp.width/2,UpExtreme - temp.height/2 ,0) ;
+    temp.object =  createRectangle(BaseBucketColor,BaseBucketColor,BaseBucketColor,BaseBucketColor,temp.width,temp.height);
+    Bucket.pb(temp) ;
+
+    BaseBucketColor = green ;
+    temp.height = 90 , temp.width = 120 ;
+    temp.CenterOfRotation=temp.location = glm::vec3(RightExtreme - temp.width/2,UpExtreme - temp.height/2 ,0) ;
+    temp.object =  createRectangle(BaseBucketColor,BaseBucketColor,BaseBucketColor,BaseBucketColor,temp.width,temp.height);
+    Bucket.pb(temp) ;
+}
+void MoveBucket(int BucketNumber)
+{
+    
+}
 void initGL (GLFWwindow* window, int width, int height)
 {
     /* Objects should be created before any other gl function and shaders */
@@ -906,7 +937,7 @@ void initGL (GLFWwindow* window, int width, int height)
     CreateCannon() ;
     CreateBackGround() ;
     CreateMirror() ;
-
+    CreateBuckets() ;
     // Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
 	// Get a handle for our "MVP" uniform
