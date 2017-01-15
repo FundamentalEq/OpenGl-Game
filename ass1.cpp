@@ -110,6 +110,7 @@ int BlockNumber ;
 // Timers
 double LastLaserUpdateTime = glfwGetTime();
 double LastBlockUpdateTime = glfwGetTime();
+double PanTimer = glfwGetTime() ;
 double current_time;
 // KillList
 vi KillThem ;
@@ -545,7 +546,15 @@ void check_pan()
     Matrices.projection = glm::ortho((float)(LeftExtreme/zoom_camera+x_change), (float)(RightExtreme/zoom_camera+x_change), (float)(UpExtreme/zoom_camera+y_change), (float)(DownExtreme/zoom_camera+y_change), 0.1f, 500.0f);
 
 }
-
+void DoPan(GLFWwindow* window)
+{
+    glm::vec3 Mouse = GetMouseCoordinates(window) - SavedMouseCoor ;
+    if(Mouse[0]>10) x_change += 10 ;
+    else if(Mouse[0]<-10) x_change -= 10 ;
+    if(Mouse[1]>10) y_change += 10 ;
+    if(Mouse[1]<-10) y_change -= 10 ;
+    check_pan() ;
+}
 /********************
     CURSOR
 *********************/
@@ -596,6 +605,11 @@ void draw (GLFWwindow* window)
     {
         LastBlockUpdateTime = current_time ;
         CreateBlocks() ;
+    }
+    if(RightMouseKeyOn && current_time - PanTimer >= 0.1)
+    {
+        PanTimer = current_time ;
+        DoPan(window) ;
     }
     for(auto it:Cannon)
     {
