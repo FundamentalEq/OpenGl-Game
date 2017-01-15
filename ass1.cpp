@@ -89,7 +89,7 @@ float GamePlayUpExtreme = UpExtreme - 100 ;
 // Speed
 float SpeedY = (UpExtreme - DownExtreme)/100.0 ;
 float SpeedX = (RightExtreme - LeftExtreme)/100.0 ;
-float SpeedLaser = (SpeedX + SpeedY)/4 ;
+float SpeedLaser = (SpeedX + SpeedY)/2 ;
 // Direction
 int GoUp = -1 ;
 int GoDown = 1 ;
@@ -100,6 +100,7 @@ void CreateLaser(void) ;
 void MoveLasers(void) ;
 void DetectCollisions(void) ;
 void CreateBlocks(void) ;
+void MoveBlocks(void) ;
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
@@ -540,6 +541,7 @@ void draw (GLFWwindow* window)
     {
         LastLaserUpdateTime = current_time ;
         MoveLasers() ;
+        MoveBlocks() ;
     }
     if(current_time - LastBlockUpdateTime >= 0.2)
     {
@@ -824,7 +826,22 @@ void DetectCollisions(void)
         auto &laser = it2.second ;
         if(CheckRectangleCollision(laser,mirror) ) reflect(laser,mirror.location,mirror.direction) ;
     }
-
+    for(auto &it2:Lasers)
+    {
+        auto &laser = it2.second ;
+        for(auto &it:Blocks)
+        {
+            auto &block = it.second ;
+            if(CheckRectangleCollision(laser,block))
+            {
+                Blocks.erase(block.ID) ;
+                KillThem.pb(laser.ID) ;
+                break;
+            }
+        }
+    }
+    for(auto id:KillThem) Lasers.erase(id) ;
+    KillThem.clear() ;
 }
 /*******************
     BLOCKS
@@ -848,10 +865,23 @@ void CreateBlocks(void)
     temp.CenterOfRotation = temp.location ;
     temp.isRotating = true ;
     temp.direction = glm::vec3(0,1,0) ;
-    temp.speed = glm::vec3(0,SpeedY,0) ;
-    temp.gravity = glm::vec3(0,SpeedY/10,0) ;
+    temp.speed = glm::vec3(0,SpeedY/10,0) ;
+    temp.gravity = glm::vec3(0,SpeedY/500.0,0) ;
     temp.object =  createRectangle(BaseBlockColor,BaseBlockColor,BaseBlockColor,BaseBlockColor,temp.width,temp.height);
     Blocks[temp.ID] = temp ;
+}
+void MoveBlocks(void)
+{
+    for(auto &it2:Blocks)
+    {
+        auto &it = it2.second ;
+        it.location = it.CenterOfRotation = it.location + it.speed ;
+        it.speed = it.speed + it.gravity ;
+        if(it.location[1]<=GamePlayDownExtreme || it.location[1]>=GamePlayUpExtreme || it.location[0]<=LeftExtreme ||it.location[0]>=RightExtreme)
+            KillThem.pb(it.ID) ;
+    }
+    for(auto id:KillThem) Blocks.erase(id),cout<<"Block Killed"<<endl ;
+    KillThem.clear() ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
