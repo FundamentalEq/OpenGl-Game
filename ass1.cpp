@@ -59,6 +59,7 @@ COLOR lightgreen = {57/255.0,230/255.0,0/255.0};
 COLOR darkgreen = {51/255.0,102/255.0,0/255.0};
 COLOR black = {30/255.0,30/255.0,21/255.0};
 COLOR blue = {0,0,1};
+COLOR green = {0,1,0} ;
 COLOR darkbrown = {46/255.0,46/255.0,31/255.0};
 COLOR lightbrown = {95/255.0,63/255.0,32/255.0};
 COLOR brown1 = {117/255.0,78/255.0,40/255.0};
@@ -98,11 +99,13 @@ void RotateCannon(GLFWwindow*) ;
 void CreateLaser(void) ;
 void MoveLasers(void) ;
 void DetectCollisions(void) ;
+void CreateBlocks(void) ;
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
 // Timers
-double last_update_time = glfwGetTime();
+double LastLaserUpdateTime = glfwGetTime();
+double LastBlockUpdateTime = glfwGetTime();
 double current_time;
 // KillList
 vi KillThem ;
@@ -533,9 +536,15 @@ void draw (GLFWwindow* window)
     glm::mat4 MVP;	// MVP = Projection * View * Model
     RotateCannon(window) ;
     DetectCollisions() ;
-    if(current_time - last_update_time >=0.01)
+    if(current_time - LastLaserUpdateTime >=0.005)
     {
+        LastLaserUpdateTime = current_time ;
         MoveLasers() ;
+    }
+    if(current_time - LastBlockUpdateTime >= 0.2)
+    {
+        LastBlockUpdateTime = current_time ;
+        CreateBlocks() ;
     }
     for(auto it:Cannon)
     {
@@ -594,7 +603,21 @@ void draw (GLFWwindow* window)
         glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
         draw3DObject(it.object);
     }
-
+    for(auto it2:Blocks)
+    {
+        auto it = it2.second ;
+        Matrices.model = glm::translate (it.location);
+        if(it.isRotating)
+        {
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(FindCurrentDirection(it.location,it.CenterOfRotation),it.direction) ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
+        }
+        MVP = VP * Matrices.model; // MVP = p * V * M
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(it.object);
+    }
 }
 
 /* Initialise glfw window, I/O callbacks and the renderer to use */
@@ -720,7 +743,7 @@ void CreateLaser(void)
     temp.width = 20 , temp.height = 5 ;
     temp.direction = Cannon[1].direction ;
     temp.speed = temp.direction * SpeedLaser ;
-    temp.location = Cannon[0].location + Cannon[1].direction*(float)(Cannon[0].radius + Cannon[1].radius + temp.width) ;
+    temp.location = Cannon[0].location + Cannon[1].direction*(float)(Cannon[0].radius + 2.0*Cannon[1].radius + temp.width/2.0) ;
     temp.CenterOfRotation = temp.location ;
     temp.ID = LaserNumber++ ;
     temp.isRotating = true ;
@@ -770,12 +793,11 @@ bool CheckRectangleCollision(GameObject &r1,GameObject &r2)
     Points[3] = r1.location - r1.direction*(r1.width/2) - prependicular*(r1.height/2) ;
 
     prependicular = normalize(cross(glm::vec3(0,0,1),r2.direction)) ;
-    FN(i,4)
-        if(abs(dot(Points[i] - r2.location,prependicular))<= r2.height/2.0 && abs(dot(Points[i] - r2.location,r2.direction)) <= r2.width/2.0 )
+    FN(i,4) if(abs(dot(Points[i] - r2.location,prependicular))<= r2.height/2.0 && abs(dot(Points[i] - r2.location,r2.direction)) <= r2.width/2.0 )
             return true ;
     return false ;
 }
-void reflect(GameObject &r1,glm::vec3 &location,glm::vec3 &direction)
+void reflect(GameObject &r1,glm::vec3 &location,glm::vec3 direction)
 {
     glm::vec3 prependicular = normalize(cross(direction,glm::vec3(0,0,1))),num,deno,X ;
     if(dot(prependicular,r1.location - location) < 0 ) prependicular = prependicular * (float)-1 ;
@@ -800,22 +822,36 @@ void DetectCollisions(void)
     for(auto &mirror:Mirrors) for(auto &it2:Lasers)
     {
         auto &laser = it2.second ;
-        if(CheckRectangleCollision(laser,mirror))  reflect(laser,mirror.location,mirror.direction) ;
+        if(CheckRectangleCollision(laser,mirror) ) reflect(laser,mirror.location,mirror.direction) ;
     }
 
 }
 /*******************
     BLOCKS
 *******************/
+int RandomNo(int limit) { int ret = rand()%limit ; cout<<"Random Number is "<<ret<<endl ; return ret ;}
+COLOR Colors[] = {red,green,red,green,black} ;
+float FindBlockX(float width)
+{
+    float X = LeftExtreme + 2*(Cannon[0].radius + Cannon[1].radius) + width/2 ;
+    float Y = RightExtreme - width/2 ;
+    cout<<"X is "<<X<<endl<<"Y is "<<Y<<endl ;
+    return X + RandomNo((int)ceil(Y-X+1)) ;
+}
 void CreateBlocks(void)
 {
     GameObject temp ;
-    COLOR BaseBlockColor = white ;
-
-    //Bucket Line
-    temp.height = 5 ,temp.width = 5 ;
+    COLOR BaseBlockColor = Colors[RandomNo(5)] ;
+    temp.ID = BlockNumber++ ;
+    temp.height = 15 ,temp.width = 15 ;
+    temp.location = glm::vec3(FindBlockX(temp.width),GamePlayDownExtreme + temp.height/2,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.isRotating = true ;
+    temp.direction = glm::vec3(0,1,0) ;
+    temp.speed = glm::vec3(0,SpeedY,0) ;
+    temp.gravity = glm::vec3(0,SpeedY/10,0) ;
     temp.object =  createRectangle(BaseBlockColor,BaseBlockColor,BaseBlockColor,BaseBlockColor,temp.width,temp.height);
-    Background.pb(temp) ;
+    Blocks[temp.ID] = temp ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
@@ -854,13 +890,16 @@ int main (int argc, char** argv)
 	int width = 800; XWidth = width ;
 	int height = 600; YWidth = height ;
 
+    // seeding the random genrator
+
     GLFWwindow* window = initGLFW(width, height);
     glfwSetCursorEnterCallback(window, cursor_enter_callback);
 	initGL (window, width, height);
 
-
+     srand(glfwGetTime()) ;
     /* Draw in loop */
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window))
+    {
 
         // OpenGL Draw commands
         draw(window);
@@ -873,10 +912,6 @@ int main (int argc, char** argv)
 
         // Control based on time (Time based transformation like 5 degrees rotation every 0.5s)
         current_time = glfwGetTime(); // Time in seconds
-        if ((current_time - last_update_time) >= 0.5) { // atleast 0.5s elapsed since last frame
-            // do something every 0.5 seconds ..
-            last_update_time = current_time;
-        }
     }
 
     glfwTerminate();
