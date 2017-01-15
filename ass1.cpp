@@ -101,6 +101,9 @@ void MoveLasers(void) ;
 void DetectCollisions(void) ;
 void CreateBlocks(void) ;
 void MoveBlocks(void) ;
+void check_pan(void) ;
+void mousescroll(GLFWwindow*, double, double) ;
+glm::vec3 GetMouseCoordinates(GLFWwindow*) ;
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
@@ -114,6 +117,9 @@ vi KillThem ;
 float x_change = 0; //For the camera pan
 float y_change = 0; //For the camera pan
 float zoom_camera = 1;
+//Mouse keys
+bool RightMouseKeyOn ;
+glm::vec3 SavedMouseCoor ;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
@@ -322,12 +328,25 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
         switch (key) {
             case GLFW_KEY_UP:
                 MoveCannon(GoUp) ;
-                cout<<"C has been pressed"<<endl ;
-                // rectangle_rot_status = !rectangle_rot_status;
                 break;
             case GLFW_KEY_DOWN:
                 MoveCannon(GoDown) ;
-                // triangle_rot_status = !triangle_rot_status;
+                break;
+            case GLFW_KEY_RIGHT:
+                x_change+=10;
+                check_pan();
+                break;
+            case GLFW_KEY_LEFT:
+                x_change-=10;
+                check_pan();
+                break;
+            case GLFW_KEY_N:
+                y_change+=10;
+                check_pan();
+                break;
+            case GLFW_KEY_M:
+                y_change-=10;
+                check_pan();
                 break;
             case GLFW_KEY_X:
                 // do something ..
@@ -383,9 +402,8 @@ void mouseButton (GLFWwindow* window, int button, int action, int mods)
                 CreateLaser() ;
             break;
         case GLFW_MOUSE_BUTTON_RIGHT:
-            if (action == GLFW_RELEASE) {
-                // rectangle_rot_dir *= -1;
-            }
+            if (action == GLFW_PRESS) RightMouseKeyOn = true ,SavedMouseCoor = GetMouseCoordinates(window) ;
+            if (action == GLFW_RELEASE) RightMouseKeyOn = false ;
             break;
         default:
             break;
@@ -502,23 +520,30 @@ VAO* CreateCircle(COLOR color,float radius,int parts,bool fill)
 *****************/
 void mousescroll(GLFWwindow* window, double xoffset, double yoffset)
 {
-    if (yoffset==-1) {
-        zoom_camera /= 1.1; //make it bigger than current size
-    }
-    else if(yoffset==1){
-        zoom_camera *= 1.1; //make it bigger than current size
-    }
-    if (zoom_camera<=1) {
-        zoom_camera = 1;
-    }
-    if (zoom_camera>=4) {
-        zoom_camera=4;
-    }
+    if (yoffset==-1) zoom_camera /= 1.1; //make it bigger than current size
+    else if(yoffset==1)   zoom_camera *= 1.1; //make it bigger than current size
+    if (zoom_camera<=1)   zoom_camera = 1;
+    if (zoom_camera>=4)   zoom_camera=4;
+
     if(x_change + LeftExtreme/zoom_camera < LeftExtreme)  x_change=LeftExtreme - LeftExtreme/zoom_camera;
     else if(x_change+RightExtreme/zoom_camera>RightExtreme) x_change=RightExtreme-RightExtreme/zoom_camera;
+
     if(y_change+ DownExtreme/zoom_camera< DownExtreme) y_change=DownExtreme + DownExtreme/zoom_camera;
     else if(y_change+UpExtreme/zoom_camera > UpExtreme) y_change=UpExtreme - UpExtreme/zoom_camera;
     Matrices.projection = glm::ortho((float)(LeftExtreme/zoom_camera+x_change), (float)(RightExtreme/zoom_camera+x_change), (float)(UpExtreme/zoom_camera+y_change), (float)(DownExtreme/zoom_camera+y_change), 0.1f, 500.0f);
+}
+void check_pan()
+{
+    if(x_change-400.0f/zoom_camera<-400)
+        x_change=-400+400.0f/zoom_camera;
+    else if(x_change+400.0f/zoom_camera>400)
+        x_change=400-400.0f/zoom_camera;
+    if(y_change-300.0f/zoom_camera<-300)
+        y_change=-300+300.0f/zoom_camera;
+    else if(y_change+300.0f/zoom_camera>300)
+        y_change=300-300.0f/zoom_camera;
+    Matrices.projection = glm::ortho((float)(LeftExtreme/zoom_camera+x_change), (float)(RightExtreme/zoom_camera+x_change), (float)(UpExtreme/zoom_camera+y_change), (float)(DownExtreme/zoom_camera+y_change), 0.1f, 500.0f);
+
 }
 
 /********************
