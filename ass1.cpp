@@ -826,6 +826,8 @@ void DetectCollisions(void)
         auto &laser = it2.second ;
         if(CheckRectangleCollision(laser,mirror) ) reflect(laser,mirror.location,mirror.direction) ;
     }
+
+    // Collisions between laser and blocks
     for(auto &it2:Lasers)
     {
         auto &laser = it2.second ;
@@ -842,6 +844,17 @@ void DetectCollisions(void)
     }
     for(auto id:KillThem) Lasers.erase(id) ;
     KillThem.clear() ;
+
+    //Collisions between blocks and mirrors
+    for(auto &mirror:Mirrors) for(auto &it2:Blocks)
+    {
+        auto &block = it2.second ;
+        if(CheckRectangleCollision(block,mirror) )
+        {
+            reflect(block,mirror.location,mirror.direction) ;
+            block.speed = block.speed*(float)0.1 ;
+        }
+    }
 }
 /*******************
     BLOCKS
