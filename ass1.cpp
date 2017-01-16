@@ -106,6 +106,8 @@ void mousescroll(GLFWwindow*, double, double) ;
 glm::vec3 GetMouseCoordinates(GLFWwindow*) ;
 void MoveBucket(int,int,bool,glm::vec3) ;
 void RotateCannonKey(int) ;
+void CheckForSelection(GLFWwindow*) ;
+void MoveCannonMouse(glm::vec3) ;
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
@@ -122,12 +124,16 @@ float y_change = 0; //For the camera pan
 float zoom_camera = 1;
 //Mouse keys
 bool RightMouseKeyOn ;
+bool LeftMouseKeyOn ;
 bool LAltOn ;
 bool RAltOn ;
 bool LCtrlOn ;
 bool RCtrlOn ;
 bool Pause ;
 bool EnableMouseShooting ;
+bool CannonSelected ;
+bool BucketRedSelected ;
+bool BucketGreenSelected ;
 glm::vec3 SavedMouseCoor ;
 // Degree to Radians
 double D2R = acos((double)-1) /180.0 ;
@@ -420,8 +426,15 @@ void mouseButton (GLFWwindow* window, int button, int action, int mods)
 {
     switch (button) {
         case GLFW_MOUSE_BUTTON_LEFT:
+            if(action == GLFW_PRESS)
+            {
+                LeftMouseKeyOn = true ;
+                CheckForSelection(window) ;
+            }
             if (action == GLFW_RELEASE)
             {
+                LeftMouseKeyOn = false ;
+                CannonSelected = BucketRedSelected = BucketGreenSelected = false ;
                 if(EnableMouseShooting) CreateLaser() ;
             }
             break;
@@ -618,6 +631,9 @@ void draw (GLFWwindow* window)
 
     glm::mat4 MVP;	// MVP = Projection * View * Model
     if(EnableMouseShooting) RotateCannon(window) ;
+    if(BucketRedSelected) MoveBucket(0, 0, true, GetMouseCoordinates(window)) ;
+    if(BucketGreenSelected) MoveBucket(1, 0, true, GetMouseCoordinates(window)) ;
+    if(CannonSelected) MoveCannonMouse(GetMouseCoordinates(window)) ;
     DetectCollisions() ;
     if(current_time - LastLaserUpdateTime >=0.005)
     {
@@ -809,6 +825,16 @@ void MoveCannon(int dir)
          if(it.isRotating) it.CenterOfRotation += it.speed*(float)dir ;
      }
  }
+ void MoveCannonMouse(glm::vec3 Mouse)
+ {
+     GameObject &big = Cannon[0] ;
+     if(Mouse[1] + big.radius >= GamePlayUpExtreme || Mouse[1] - big.radius <= GamePlayDownExtreme) return ;
+     for(auto &it:Cannon)
+     {
+         it.location[1] = Mouse[1] ;
+         if(it.isRotating) it.CenterOfRotation[1] = Mouse[1] ;
+     }
+ }
 void RotateCannon(GLFWwindow* window)
 {
     if(!CursorOnScreen) return ;
@@ -915,7 +941,7 @@ void reflect(GameObject &r1,glm::vec3 &location,glm::vec3 direction)
     if(dot(prependicular,r1.location - location) < 0 ) prependicular = prependicular * (float)-1 ;
     num = cross(r1.location - location,r1.direction) ;
     deno = cross(direction,r1.direction) ;
-    float t = num.length() / deno.length() ;
+    float t = glm::length(num) / glm::length(deno) ;
     if(dot(num,deno) < 0 ) t*=-1 ;
     X = location + direction * t ;
     r1.direction += X ;
@@ -1044,9 +1070,22 @@ void MoveBucket(int BucketNumber,int direction,bool FollowMouse,glm::vec3 Mouse)
 /*************************
     CLICK TO SELECT
 **************************/
-void CheckClick(GLFWwindow* window)
+void CheckForSelection(GLFWwindow* window)
 {
-
+    glm::vec3 Mouse = GetMouseCoordinates(window) ;
+    // Check click on cannon
+    for(auto &it:Cannon) if(glm::length(Mouse - it.location) <= it.radius) CannonSelected = true ,cout<<"Cannon selected"<<endl;
+    // Check for click on Buckets
+    FN(i,sz(Bucket))
+    {
+        auto &bucket = Bucket[i] ;
+        glm::vec3 prependicular = normalize(cross(glm::vec3(0,0,1),bucket.direction)) ;
+        if(abs(dot(Mouse - bucket.location,prependicular))<= bucket.height/2.0 && abs(dot(Mouse - bucket.location,bucket.direction)) <= bucket.width/2.0 )
+        {
+            if(i == 0) BucketRedSelected = true ,cout<<"Red bucket selected"<<endl;
+            else BucketGreenSelected = true,cout<<"Green Bucket selected"<<endl ;
+        }
+    }
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
