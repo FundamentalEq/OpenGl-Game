@@ -104,6 +104,7 @@ void MoveBlocks(void) ;
 void check_pan(void) ;
 void mousescroll(GLFWwindow*, double, double) ;
 glm::vec3 GetMouseCoordinates(GLFWwindow*) ;
+void MoveBucket(int,int,bool,glm::vec3) ;
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
@@ -120,6 +121,10 @@ float y_change = 0; //For the camera pan
 float zoom_camera = 1;
 //Mouse keys
 bool RightMouseKeyOn ;
+bool LAltOn ;
+bool RAltOn ;
+bool LCtrlOn ;
+bool RCtrlOn ;
 glm::vec3 SavedMouseCoor ;
 struct GameObject
 {
@@ -327,34 +332,15 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
     if (action == GLFW_RELEASE)
     {
         switch (key) {
-            case GLFW_KEY_UP:
-                MoveCannon(GoUp) ;
-                break;
-            case GLFW_KEY_DOWN:
-                MoveCannon(GoDown) ;
-                break;
-            case GLFW_KEY_RIGHT:
-                x_change+=10;
-                check_pan();
-                break;
-            case GLFW_KEY_LEFT:
-                x_change-=10;
-                check_pan();
-                break;
-            case GLFW_KEY_N:
-                y_change+=10;
-                check_pan();
-                break;
-            case GLFW_KEY_M:
-                y_change-=10;
-                check_pan();
-                break;
-            case GLFW_KEY_X:
-                // do something ..
-                break;
-            case GLFW_KEY_SPACE :
-                CreateLaser() ;
-                break ;
+            case GLFW_KEY_UP: MoveCannon(GoUp) ;break;
+            case GLFW_KEY_DOWN: MoveCannon(GoDown) ;break;
+            case GLFW_KEY_RIGHT: break;
+            case GLFW_KEY_LEFT: break;
+            case GLFW_KEY_LEFT_ALT : LAltOn = false ; break ;
+            case GLFW_KEY_RIGHT_ALT : RAltOn = false ; break ;
+            case GLFW_KEY_LEFT_CONTROL : LCtrlOn = false ; break ;
+            case GLFW_KEY_RIGHT_CONTROL : RCtrlOn = false ; break ;
+            case GLFW_KEY_SPACE : CreateLaser() ; break ;
             default:
                 break;
         }
@@ -365,6 +351,18 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_ESCAPE:
                 quit(window);
                 break;
+            case GLFW_KEY_LEFT_ALT : LAltOn = true ; break ;
+            case GLFW_KEY_RIGHT_ALT : RAltOn = true ; break ;
+            case GLFW_KEY_LEFT_CONTROL : LCtrlOn = true ; break ;
+            case GLFW_KEY_RIGHT_CONTROL : RCtrlOn = true ; break ;
+            case GLFW_KEY_RIGHT :
+                if(LAltOn || RAltOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
+                break ;
+            case GLFW_KEY_LEFT :
+                if(LAltOn || RAltOn) MoveBucket(0,-1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(1,-1,0,glm::vec3(0,0,0)) ;
+                break ;
             default:
                 break;
         }
@@ -375,6 +373,14 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
         {
             case GLFW_KEY_UP : MoveCannon(GoUp) ; break ;
             case GLFW_KEY_DOWN : MoveCannon(GoDown) ; break ;
+            case GLFW_KEY_RIGHT :
+                if(LAltOn || RAltOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
+                break ;
+            case GLFW_KEY_LEFT :
+                if(LAltOn || RAltOn) MoveBucket(0,-1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(1,-1,0,glm::vec3(0,0,0)) ;
+                break ;
             default : break ;
         }
     }
@@ -991,9 +997,13 @@ void CreateBuckets(void)
     temp.object =  createRectangle(BaseBucketColor,BaseBucketColor,BaseBucketColor,BaseBucketColor,temp.width,temp.height);
     Bucket.pb(temp) ;
 }
-void MoveBucket(int BucketNumber)
+void MoveBucket(int BucketNumber,int direction,bool FollowMouse,glm::vec3 Mouse)
 {
-
+    GameObject &bucket = Bucket[BucketNumber] ;
+    if(FollowMouse) bucket.location[0] = Mouse[0] ;
+    else bucket.location[0] = bucket.location[0] + direction * SpeedX ;
+    if(bucket.location[0] < LeftExtreme + bucket.width/2) bucket.location[0] = LeftExtreme + bucket.width/2 ;
+    if(bucket.location[0] > RightExtreme - bucket.width/2) bucket.location[0] = RightExtreme - bucket.width/2 ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
