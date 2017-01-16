@@ -105,6 +105,7 @@ void check_pan(void) ;
 void mousescroll(GLFWwindow*, double, double) ;
 glm::vec3 GetMouseCoordinates(GLFWwindow*) ;
 void MoveBucket(int,int,bool,glm::vec3) ;
+void RotateCannonKey(int) ;
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
@@ -127,6 +128,11 @@ bool LCtrlOn ;
 bool RCtrlOn ;
 bool Pause ;
 glm::vec3 SavedMouseCoor ;
+// Degree to Radians
+double D2R = acos((double)-1) /180.0 ;
+//Rotation Matricies
+glm::mat3 RotateCloclWise = glm::mat3(glm::vec3(cos(D2R*5),sin(D2R*5),0),glm::vec3(-sin(D2R*5),cos(D2R*5),0),glm::vec3(0,0,1)) ;
+glm::mat3 RotateAntiCloclWise = glm::mat3(glm::vec3(cos(D2R*5),-sin(D2R*5),0),glm::vec3(sin(D2R*5),cos(D2R*5),0),glm::vec3(0,0,1)) ;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
@@ -333,8 +339,10 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
     if (action == GLFW_RELEASE)
     {
         switch (key) {
-            case GLFW_KEY_UP: MoveCannon(GoUp) ;break;
-            case GLFW_KEY_DOWN: MoveCannon(GoDown) ;break;
+            case GLFW_KEY_S: MoveCannon(GoUp) ;break;
+            case GLFW_KEY_F: MoveCannon(GoDown) ;break;
+            case GLFW_KEY_UP : mousescroll(window,0,1) ; break ;
+            case GLFW_KEY_DOWN : mousescroll(window,0,-1) ; break ;
             case GLFW_KEY_RIGHT: break;
             case GLFW_KEY_LEFT: break;
             case GLFW_KEY_LEFT_ALT : LAltOn = false ; break ;
@@ -357,6 +365,8 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_LEFT_CONTROL : LCtrlOn = true ; break ;
             case GLFW_KEY_RIGHT_CONTROL : RCtrlOn = true ; break ;
             case GLFW_KEY_P : Pause ^=1 ; break ;
+            case GLFW_KEY_A : RotateCannonKey(1) ; break ;
+            case GLFW_KEY_D : RotateCannonKey(-1) ; break ;
             case GLFW_KEY_RIGHT :
                 if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
                 if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
@@ -373,8 +383,8 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         switch(key)
         {
-            case GLFW_KEY_UP : MoveCannon(GoUp) ; break ;
-            case GLFW_KEY_DOWN : MoveCannon(GoDown) ; break ;
+            case GLFW_KEY_S : MoveCannon(GoUp) ; break ;
+            case GLFW_KEY_F : MoveCannon(GoDown) ; break ;
             case GLFW_KEY_RIGHT :
                 if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
                 if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
@@ -593,7 +603,7 @@ glm::vec3 FindCurrentDirection(glm::vec3 A,glm::vec3 B)
 }
 void draw (GLFWwindow* window)
 {
-    if(Pause) return ; 
+    if(Pause) return ;
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram (programID);
 
@@ -602,7 +612,7 @@ void draw (GLFWwindow* window)
     glm::mat4 VP = Matrices.projection * Matrices.view;
 
     glm::mat4 MVP;	// MVP = Projection * View * Model
-    RotateCannon(window) ;
+    // RotateCannon(window) ;
     DetectCollisions() ;
     if(current_time - LastLaserUpdateTime >=0.005)
     {
@@ -799,6 +809,22 @@ void RotateCannon(GLFWwindow* window)
     glm::vec3 Mouse = GetMouseCoordinates(window) ;
     for(auto &it:Cannon) if(it.isRotating) it.direction = normalize(Mouse - it.CenterOfRotation) ;
 }
+void RotateCannonKey(int Clock)
+{
+    cout<<"rck called with clock = "<<Clock<<endl ;
+    if(Clock == 1) for(auto &it:Cannon) if(it.isRotating)
+    {
+        it.direction = it.direction - it.CenterOfRotation ;
+        it.direction = RotateCloclWise * it.direction ;
+        it.direction = it.direction + it.CenterOfRotation ;
+    }
+    else if(Clock == -1) for(auto &it:Cannon) if(it.isRotating)
+    {
+        it.direction = it.direction - it.CenterOfRotation ;
+        it.direction = RotateAntiCloclWise * it.direction ;
+        it.direction = it.direction + it.CenterOfRotation ;
+    }
+}
 /******************
     BACKGROUND
 *******************/
@@ -941,6 +967,14 @@ void DetectCollisions(void)
             block.speed = block.speed*(float)0.1 ;
         }
     }
+    for(auto &bucket:Bucket) for(auto &it2:Blocks)
+    {
+        auto &block = it2.second ;
+        if(CheckRectangleCollision(block,bucket))
+        {
+            cout<<"Block in bucket"<<endl ;
+        }
+    }
 }
 /*******************
     BLOCKS
@@ -975,7 +1009,7 @@ void MoveBlocks(void)
         auto &it = it2.second ;
         it.location = it.CenterOfRotation = it.location + it.speed ;
         it.speed = it.speed + it.gravity ;
-        if(it.location[1]<=GamePlayDownExtreme || it.location[1]>=GamePlayUpExtreme || it.location[0]<=LeftExtreme ||it.location[0]>=RightExtreme)
+        if(it.location[1]<=DownExtreme || it.location[1]>=UpExtreme || it.location[0]<=LeftExtreme ||it.location[0]>=RightExtreme)
             KillThem.pb(it.ID) ;
     }
     for(auto id:KillThem) Blocks.erase(id),cout<<"Block Killed"<<endl ;
@@ -989,13 +1023,13 @@ void CreateBuckets(void)
     GameObject temp ;
     COLOR BaseBucketColor = red ;
 
-    temp.height = 90 , temp.width = 120 ;
+    temp.height = 90 , temp.width = 120 ; temp.direction = glm::vec3(0,1,0) ;
     temp.CenterOfRotation = temp.location = glm::vec3(LeftExtreme + temp.width/2,UpExtreme - temp.height/2 ,0) ;
     temp.object =  createRectangle(BaseBucketColor,BaseBucketColor,BaseBucketColor,BaseBucketColor,temp.width,temp.height);
     Bucket.pb(temp) ;
 
     BaseBucketColor = green ;
-    temp.height = 90 , temp.width = 120 ;
+    temp.height = 90 , temp.width = 120 ;  temp.direction = glm::vec3(0,1,0) ;
     temp.CenterOfRotation=temp.location = glm::vec3(RightExtreme - temp.width/2,UpExtreme - temp.height/2 ,0) ;
     temp.object =  createRectangle(BaseBucketColor,BaseBucketColor,BaseBucketColor,BaseBucketColor,temp.width,temp.height);
     Bucket.pb(temp) ;
@@ -1007,6 +1041,7 @@ void MoveBucket(int BucketNumber,int direction,bool FollowMouse,glm::vec3 Mouse)
     else bucket.location[0] = bucket.location[0] + direction * SpeedX ;
     if(bucket.location[0] < LeftExtreme + bucket.width/2) bucket.location[0] = LeftExtreme + bucket.width/2 ;
     if(bucket.location[0] > RightExtreme - bucket.width/2) bucket.location[0] = RightExtreme - bucket.width/2 ;
+    bucket.CenterOfRotation = bucket.location ;
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
