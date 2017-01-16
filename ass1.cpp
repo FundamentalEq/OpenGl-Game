@@ -131,8 +131,8 @@ glm::vec3 SavedMouseCoor ;
 // Degree to Radians
 double D2R = acos((double)-1) /180.0 ;
 //Rotation Matricies
-glm::mat3 RotateCloclWise = glm::mat3(glm::vec3(cos(D2R*5),sin(D2R*5),0),glm::vec3(-sin(D2R*5),cos(D2R*5),0),glm::vec3(0,0,1)) ;
-glm::mat3 RotateAntiCloclWise = glm::mat3(glm::vec3(cos(D2R*5),-sin(D2R*5),0),glm::vec3(sin(D2R*5),cos(D2R*5),0),glm::vec3(0,0,1)) ;
+glm::mat3 RotateCloclWise = glm::mat3(glm::vec3(cos(D2R*10),-sin(D2R*10),0),glm::vec3(sin(D2R*10),cos(D2R*10),0),glm::vec3(0,0,1)) ;
+glm::mat3 RotateAntiCloclWise = glm::mat3(glm::vec3(cos(D2R*10),sin(D2R*10),0),glm::vec3(-sin(D2R*10),cos(D2R*10),0),glm::vec3(0,0,1)) ;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
@@ -385,6 +385,8 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
         {
             case GLFW_KEY_S : MoveCannon(GoUp) ; break ;
             case GLFW_KEY_F : MoveCannon(GoDown) ; break ;
+            case GLFW_KEY_A : RotateCannonKey(1) ; break ;
+            case GLFW_KEY_D : RotateCannonKey(-1) ; break ;
             case GLFW_KEY_RIGHT :
                 if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
                 if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
@@ -789,6 +791,7 @@ void CreateCannon(void)
     temp.location = glm::vec3(LeftExtreme+50,0,0);
     temp.speed = glm::vec3(0,SpeedY,0) ;
     temp.CenterOfRotation = glm::vec3(LeftExtreme+20,0,0) ;
+    temp.direction = glm::vec3(1,0,0) ;
     temp.isRotating = true ;
     Cannon.pb(temp) ;
 }
@@ -813,17 +816,9 @@ void RotateCannonKey(int Clock)
 {
     cout<<"rck called with clock = "<<Clock<<endl ;
     if(Clock == 1) for(auto &it:Cannon) if(it.isRotating)
-    {
-        it.direction = it.direction - it.CenterOfRotation ;
         it.direction = RotateCloclWise * it.direction ;
-        it.direction = it.direction + it.CenterOfRotation ;
-    }
-    else if(Clock == -1) for(auto &it:Cannon) if(it.isRotating)
-    {
-        it.direction = it.direction - it.CenterOfRotation ;
+    if(Clock == -1) for(auto &it:Cannon) if(it.isRotating)
         it.direction = RotateAntiCloclWise * it.direction ;
-        it.direction = it.direction + it.CenterOfRotation ;
-    }
 }
 /******************
     BACKGROUND
