@@ -125,6 +125,7 @@ bool LAltOn ;
 bool RAltOn ;
 bool LCtrlOn ;
 bool RCtrlOn ;
+bool Pause ;
 glm::vec3 SavedMouseCoor ;
 struct GameObject
 {
@@ -355,13 +356,14 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_RIGHT_ALT : RAltOn = true ; break ;
             case GLFW_KEY_LEFT_CONTROL : LCtrlOn = true ; break ;
             case GLFW_KEY_RIGHT_CONTROL : RCtrlOn = true ; break ;
+            case GLFW_KEY_P : Pause ^=1 ; break ;
             case GLFW_KEY_RIGHT :
-                if(LAltOn || RAltOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
-                if(LCtrlOn || RCtrlOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
+                if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
                 break ;
             case GLFW_KEY_LEFT :
-                if(LAltOn || RAltOn) MoveBucket(0,-1,0,glm::vec3(0,0,0)) ;
-                if(LCtrlOn || RCtrlOn) MoveBucket(1,-1,0,glm::vec3(0,0,0)) ;
+                if(LAltOn || RAltOn) MoveBucket(1,-1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(0,-1,0,glm::vec3(0,0,0)) ;
                 break ;
             default:
                 break;
@@ -374,12 +376,12 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_UP : MoveCannon(GoUp) ; break ;
             case GLFW_KEY_DOWN : MoveCannon(GoDown) ; break ;
             case GLFW_KEY_RIGHT :
-                if(LAltOn || RAltOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
-                if(LCtrlOn || RCtrlOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
+                if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
                 break ;
             case GLFW_KEY_LEFT :
-                if(LAltOn || RAltOn) MoveBucket(0,-1,0,glm::vec3(0,0,0)) ;
-                if(LCtrlOn || RCtrlOn) MoveBucket(1,-1,0,glm::vec3(0,0,0)) ;
+                if(LAltOn || RAltOn) MoveBucket(1,-1,0,glm::vec3(0,0,0)) ;
+                if(LCtrlOn || RCtrlOn) MoveBucket(0,-1,0,glm::vec3(0,0,0)) ;
                 break ;
             default : break ;
         }
@@ -591,6 +593,7 @@ glm::vec3 FindCurrentDirection(glm::vec3 A,glm::vec3 B)
 }
 void draw (GLFWwindow* window)
 {
+    if(Pause) return ; 
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram (programID);
 
