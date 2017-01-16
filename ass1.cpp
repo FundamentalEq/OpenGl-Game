@@ -127,6 +127,7 @@ bool RAltOn ;
 bool LCtrlOn ;
 bool RCtrlOn ;
 bool Pause ;
+bool EnableMouseShooting ;
 glm::vec3 SavedMouseCoor ;
 // Degree to Radians
 double D2R = acos((double)-1) /180.0 ;
@@ -367,6 +368,7 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_P : Pause ^=1 ; break ;
             case GLFW_KEY_A : RotateCannonKey(1) ; break ;
             case GLFW_KEY_D : RotateCannonKey(-1) ; break ;
+            case GLFW_KEY_E : EnableMouseShooting ^= 1 ; break ;
             case GLFW_KEY_RIGHT :
                 if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
                 if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
@@ -419,8 +421,9 @@ void mouseButton (GLFWwindow* window, int button, int action, int mods)
     switch (button) {
         case GLFW_MOUSE_BUTTON_LEFT:
             if (action == GLFW_RELEASE)
-                // triangle_rot_dir *= -1;
-                CreateLaser() ;
+            {
+                if(EnableMouseShooting) CreateLaser() ;
+            }
             break;
         case GLFW_MOUSE_BUTTON_RIGHT:
             if (action == GLFW_PRESS) RightMouseKeyOn = true ,SavedMouseCoor = GetMouseCoordinates(window) ;
@@ -614,7 +617,7 @@ void draw (GLFWwindow* window)
     glm::mat4 VP = Matrices.projection * Matrices.view;
 
     glm::mat4 MVP;	// MVP = Projection * View * Model
-    // RotateCannon(window) ;
+    if(EnableMouseShooting) RotateCannon(window) ;
     DetectCollisions() ;
     if(current_time - LastLaserUpdateTime >=0.005)
     {
@@ -1037,6 +1040,13 @@ void MoveBucket(int BucketNumber,int direction,bool FollowMouse,glm::vec3 Mouse)
     if(bucket.location[0] < LeftExtreme + bucket.width/2) bucket.location[0] = LeftExtreme + bucket.width/2 ;
     if(bucket.location[0] > RightExtreme - bucket.width/2) bucket.location[0] = RightExtreme - bucket.width/2 ;
     bucket.CenterOfRotation = bucket.location ;
+}
+/*************************
+    CLICK TO SELECT
+**************************/
+void CheckClick(GLFWwindow* window)
+{
+
 }
 void initGL (GLFWwindow* window, int width, int height)
 {
