@@ -115,6 +115,7 @@ int BlockNumber ;
 double LastLaserUpdateTime = glfwGetTime();
 double LastBlockUpdateTime = glfwGetTime();
 double PanTimer = glfwGetTime() ;
+double ScoreTimer = glfwGetTime() ;
 double current_time;
 // KillList
 vi KillThem ;
@@ -140,17 +141,27 @@ double D2R = acos((double)-1) /180.0 ;
 //Rotation Matricies
 glm::mat3 RotateCloclWise = glm::mat3(glm::vec3(cos(D2R*10),-sin(D2R*10),0),glm::vec3(sin(D2R*10),cos(D2R*10),0),glm::vec3(0,0,1)) ;
 glm::mat3 RotateAntiCloclWise = glm::mat3(glm::vec3(cos(D2R*10),sin(D2R*10),0),glm::vec3(-sin(D2R*10),cos(D2R*10),0),glm::vec3(0,0,1)) ;
+// Score & Lives
+int Score = 0 ;
+int EarnedScore = 5 ;
+int LostScore = -10 ;
+int WinningScore = 500 ;
+int LoosingScore = -50 ;
+int Lives = 3 ;
+int WrongKills = 0 ;
+int AllowedWrongKills = 5 ;
 struct GameObject
 {
     glm::vec3 location,CenterOfRotation , direction , gravity , speed ;
     float height,width,theta,radius ;
     bool fixed,isRotating ;
-    int ID ;
+    int ID,color;
     struct VAO * object ;
     GameObject(void)
     {
         fixed = true , isRotating = false ;
         height = width = theta = radius = 0 ;
+        ID = color = 0 ;
         location = CenterOfRotation = direction = gravity = speed = glm::vec3(0,0,0) ;
         object = NULL ;
     }
@@ -461,16 +472,6 @@ void reshapeWindow (GLFWwindow* window, int width, int height)
 
 	// sets the viewport of openGL renderer
 	glViewport (0, 0, (GLsizei) fbwidth, (GLsizei) fbheight);
-
-	// set the projection matrix as perspective
-	/* glMatrixMode (GL_PROJECTION);
-	   glLoadIdentity ();
-	   gluPerspective (fov, (GLfloat) fbwidth / (GLfloat) fbheight, 0.1, 500.0); */
-	// Store the projection matrix in a variable for future use
-    // Perspective projection for 3D views
-    // Matrices.projection = glm::perspective (fov, (GLfloat) fbwidth / (GLfloat) fbheight, 0.1f, 500.0f);
-
-    // Ortho projection for 2D views
     Matrices.projection = glm::ortho(LeftExtreme, RightExtreme, UpExtreme, DownExtreme, 0.1f, 500.0f);
 }
 
@@ -635,13 +636,33 @@ void draw (GLFWwindow* window)
     if(BucketGreenSelected) MoveBucket(1, 0, true, GetMouseCoordinates(window)) ;
     if(CannonSelected) MoveCannonMouse(GetMouseCoordinates(window)) ;
     DetectCollisions() ;
+    if(WrongKills > AllowedWrongKills) --Lives ;
+    if(Lives == 0 || Score < LoosingScore)
+    {
+        cout<<"YOU LOOSE"<<endl ;
+        exit(0) ;
+    }
+    if(Score >= WinningScore)
+    {
+        cout<<"YOU WIN"<<endl ;
+        exit(0) ;
+    }
+    if(current_time - ScoreTimer >= 0.5)
+    {
+        ScoreTimer = current_time ;
+        cout<<"**************************************"<<endl ;
+        cout<<"Score : "<<Score<<endl ;
+        cout<<"Lives : "<<Lives<<endl ;
+        cout<<"Wrong Kills : "<<WrongKills<<endl ;
+        cout<<"**************************************"<<endl ;
+    }
     if(current_time - LastLaserUpdateTime >=0.005)
     {
         LastLaserUpdateTime = current_time ;
         MoveLasers() ;
         MoveBlocks() ;
     }
-    if(current_time - LastBlockUpdateTime >= 0.2)
+    if(current_time - LastBlockUpdateTime >= 0.5)
     {
         LastBlockUpdateTime = current_time ;
         CreateBlocks() ;
@@ -972,6 +993,9 @@ void DetectCollisions(void)
             auto &block = it.second ;
             if(CheckRectangleCollision(laser,block))
             {
+                //block is of black color
+                if(block.color == 2) Score += EarnedScore ,WrongKills = 0;
+                else ++WrongKills ;
                 Blocks.erase(block.ID) ;
                 KillThem.pb(laser.ID) ;
                 break;
@@ -991,20 +1015,28 @@ void DetectCollisions(void)
             block.speed = block.speed*(float)0.1 ;
         }
     }
-    for(auto &bucket:Bucket) for(auto &it2:Blocks)
+    // Collisions between buckets and blocks
+    if(!CheckRectangleCollision(Bucket[0],Bucket[1]))
     {
-        auto &block = it2.second ;
-        if(CheckRectangleCollision(block,bucket))
+        for(auto &bucket:Bucket) for(auto &it2:Blocks)
         {
-            cout<<"Block in bucket"<<endl ;
+            auto &block = it2.second ;
+            if(CheckRectangleCollision(block,bucket))
+            {
+                if(block.color == 2) --Lives ;
+                else if(bucket.color == block.color) Score += EarnedScore ;
+                KillThem.pb(block.ID) ;
+            }
         }
+        for(auto id:KillThem) Blocks.erase(id) ;
+        KillThem.clear() ;
     }
 }
 /*******************
     BLOCKS
 *******************/
 int RandomNo(int limit) { return rand()%limit ;}
-COLOR Colors[] = {red,green,red,green,black} ;
+COLOR Colors[] = {red,green,black} ;
 float FindBlockX(float width)
 {
     float X = LeftExtreme + 2*(Cannon[0].radius + Cannon[1].radius) + width/2 ;
@@ -1014,7 +1046,8 @@ float FindBlockX(float width)
 void CreateBlocks(void)
 {
     GameObject temp ;
-    COLOR BaseBlockColor = Colors[RandomNo(5)] ;
+    temp.color = RandomNo(3) ;
+    COLOR BaseBlockColor = Colors[temp.color] ;
     temp.ID = BlockNumber++ ;
     temp.height = 15 ,temp.width = 15 ;
     temp.location = glm::vec3(FindBlockX(temp.width),GamePlayDownExtreme + temp.height/2,0) ;
@@ -1036,7 +1069,7 @@ void MoveBlocks(void)
         if(it.location[1]<=DownExtreme || it.location[1]>=UpExtreme || it.location[0]<=LeftExtreme ||it.location[0]>=RightExtreme)
             KillThem.pb(it.ID) ;
     }
-    for(auto id:KillThem) Blocks.erase(id),cout<<"Block Killed"<<endl ;
+    for(auto id:KillThem) Blocks.erase(id);
     KillThem.clear() ;
 }
 /********************
@@ -1046,12 +1079,13 @@ void CreateBuckets(void)
 {
     GameObject temp ;
     COLOR BaseBucketColor = red ;
-
+    temp.color = 0 ;
     temp.height = 90 , temp.width = 120 ; temp.direction = glm::vec3(0,1,0) ;
     temp.CenterOfRotation = temp.location = glm::vec3(LeftExtreme + temp.width/2,UpExtreme - temp.height/2 ,0) ;
     temp.object =  createRectangle(BaseBucketColor,BaseBucketColor,BaseBucketColor,BaseBucketColor,temp.width,temp.height);
     Bucket.pb(temp) ;
 
+    temp.color = 1 ;
     BaseBucketColor = green ;
     temp.height = 90 , temp.width = 120 ;  temp.direction = glm::vec3(0,1,0) ;
     temp.CenterOfRotation=temp.location = glm::vec3(RightExtreme - temp.width/2,UpExtreme - temp.height/2 ,0) ;
