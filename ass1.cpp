@@ -93,21 +93,7 @@ float SpeedLaser = (SpeedX + SpeedY)/2 ;
 // Direction
 int GoUp = -1 ;
 int GoDown = 1 ;
-// Function Declaration
-void MoveCannon(int) ;
-void RotateCannon(GLFWwindow*) ;
-void CreateLaser(void) ;
-void MoveLasers(void) ;
-void DetectCollisions(void) ;
-void CreateBlocks(void) ;
-void MoveBlocks(void) ;
-void check_pan(void) ;
-void mousescroll(GLFWwindow*, double, double) ;
-glm::vec3 GetMouseCoordinates(GLFWwindow*) ;
-void MoveBucket(int,int,bool,glm::vec3) ;
-void RotateCannonKey(int) ;
-void CheckForSelection(GLFWwindow*) ;
-void MoveCannonMouse(glm::vec3) ;
+
 // Global Iterators
 int LaserNumber ;
 int BlockNumber ;
@@ -116,6 +102,7 @@ double LastLaserUpdateTime = glfwGetTime();
 double LastBlockUpdateTime = glfwGetTime();
 double PanTimer = glfwGetTime() ;
 double ScoreTimer = glfwGetTime() ;
+double RotateMirrorTimer = glfwGetTime() ;
 double current_time;
 // KillList
 vi KillThem ;
@@ -135,6 +122,7 @@ bool EnableMouseShooting ;
 bool CannonSelected ;
 bool BucketRedSelected ;
 bool BucketGreenSelected ;
+bool RotateMirrorAllowed = true ;
 glm::vec3 SavedMouseCoor ;
 // Degree to Radians
 double D2R = acos((double)-1) /180.0 ;
@@ -166,6 +154,23 @@ struct GameObject
         object = NULL ;
     }
 } ;
+// Function Declaration
+void MoveCannon(int) ;
+void RotateCannon(GLFWwindow*) ;
+void CreateLaser(void) ;
+void MoveLasers(void) ;
+void DetectCollisions(void) ;
+void CreateBlocks(void) ;
+void MoveBlocks(void) ;
+void check_pan(void) ;
+void mousescroll(GLFWwindow*, double, double) ;
+glm::vec3 GetMouseCoordinates(GLFWwindow*) ;
+void MoveBucket(int,int,bool,glm::vec3) ;
+void RotateCannonKey(int) ;
+void CheckForSelection(GLFWwindow*) ;
+void MoveCannonMouse(glm::vec3) ;
+void RotateMirrors(void) ;
+int RandomNo(int) ;
 // Global Variables
 bool CursorOnScreen ;
 vector< GameObject > Cannon ;
@@ -386,6 +391,7 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_A : RotateCannonKey(1) ; break ;
             case GLFW_KEY_D : RotateCannonKey(-1) ; break ;
             case GLFW_KEY_E : EnableMouseShooting ^= 1 ; break ;
+            case GLFW_KEY_R : RotateMirrorAllowed ^= 1 ; break ;
             case GLFW_KEY_RIGHT :
                 if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
                 if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
@@ -637,6 +643,7 @@ void draw (GLFWwindow* window)
     if(CannonSelected) MoveCannonMouse(GetMouseCoordinates(window)) ;
     DetectCollisions() ;
     if(WrongKills > AllowedWrongKills) --Lives ;
+    // Enforce Game Rules
     if(Lives == 0 || Score < LoosingScore)
     {
         cout<<"YOU LOOSE"<<endl ;
@@ -655,6 +662,13 @@ void draw (GLFWwindow* window)
         cout<<"Lives : "<<Lives<<endl ;
         cout<<"Wrong Kills : "<<WrongKills<<endl ;
         cout<<"**************************************"<<endl ;
+    }
+
+    // Rotate Mirror
+    if(current_time - RotateMirrorTimer >= 0.05 && RotateMirrorAllowed)
+    {
+        RotateMirrorTimer = current_time ;
+        RotateMirrors() ;
     }
     if(current_time - LastLaserUpdateTime >=0.005)
     {
@@ -938,7 +952,24 @@ void CreateMirror(void)
     temp.isRotating = true ;
     temp.object =  createRectangle(BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,temp.width,temp.height);
     Mirrors.pb(temp) ;
+
+    temp.height = 5 ,temp.width = 100 ;
+    temp.location = glm::vec3(150,-100,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.direction = normalize(glm::vec3(1,-1,0)) ;
+    temp.isRotating = true ;
+    temp.object =  createRectangle(BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,temp.width,temp.height);
+    Mirrors.pb(temp) ;
+
+    temp.height = 5 ,temp.width = 50 ;
+    temp.location = glm::vec3(-100,-100,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.direction = normalize(glm::vec3(1,-1,0)) ;
+    temp.isRotating = true ;
+    temp.object =  createRectangle(BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,BaseMirrorColor,temp.width,temp.height);
+    Mirrors.pb(temp) ;
 }
+void RotateMirrors(void) { for(auto &mirror:Mirrors)  mirror.direction = RotateCloclWise * mirror.direction ; }
 /*******************
     COLLISIONS
 ********************/
