@@ -90,6 +90,8 @@ float GamePlayUpExtreme = UpExtreme - 100 ;
 float SpeedY = (UpExtreme - DownExtreme)/100.0 ;
 float SpeedX = (RightExtreme - LeftExtreme)/100.0 ;
 float SpeedLaser = (SpeedX + SpeedY)/2 ;
+int SpeedoMeter = 0 ;
+float BlockSpeedChange = 1.2 ;
 // Direction
 int GoUp = -1 ;
 int GoDown = 1 ;
@@ -172,6 +174,7 @@ void CheckForSelection(GLFWwindow*) ;
 void MoveCannonMouse(glm::vec3) ;
 void RotateMirrors(void) ;
 int RandomNo(int) ;
+void ChangeBlockSpeed(int) ;
 // Global Variables
 bool CursorOnScreen ;
 vector< GameObject > Cannon ;
@@ -394,6 +397,8 @@ void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
             case GLFW_KEY_D : RotateCannonKey(-1) ; break ;
             case GLFW_KEY_E : EnableMouseShooting ^= 1 ; break ;
             case GLFW_KEY_R : RotateMirrorAllowed ^= 1 ; break ;
+            case GLFW_KEY_N : ChangeBlockSpeed(-1) ; break ;
+            case GLFW_KEY_M : ChangeBlockSpeed(1) ; break ;
             case GLFW_KEY_RIGHT :
                 if(LAltOn || RAltOn) MoveBucket(1,1,0,glm::vec3(0,0,0)) ;
                 if(LCtrlOn || RCtrlOn) MoveBucket(0,1,0,glm::vec3(0,0,0)) ;
@@ -663,6 +668,7 @@ void draw (GLFWwindow* window)
         cout<<"Score : "<<Score<<endl ;
         cout<<"Lives : "<<Lives<<endl ;
         cout<<"Wrong Kills : "<<WrongKills<<endl ;
+        cout<<"Speed : "<<SpeedoMeter<<endl ;
         cout<<"**************************************"<<endl ;
     }
 
@@ -1102,11 +1108,21 @@ void CreateBlocks(void)
     temp.CenterOfRotation = temp.location ;
     temp.isRotating = true ;
     temp.direction = glm::vec3(0,1,0) ;
-    temp.speed = glm::vec3(0,SpeedY/10,0) ;
+    temp.speed = glm::vec3(0,SpeedY/10,0) * (float)pow(BlockSpeedChange,(float)SpeedoMeter) ;
     temp.gravity = glm::vec3(0,SpeedY/500.0,0) ;
     temp.object =  createRectangle(BaseBlockColor,BaseBlockColor,BaseBlockColor,BaseBlockColor,temp.width,temp.height);
     Blocks[temp.ID] = temp ;
 }
+void ChangeBlockSpeed(int change)
+{
+    SpeedoMeter += change ;
+    for(auto &it2:Blocks)
+    {
+        auto &it = it2.second ;
+        it.speed = it.speed * (float)pow(BlockSpeedChange,(float)change) ;
+    }
+}
+
 void MoveBlocks(void)
 {
     for(auto &it2:Blocks)
