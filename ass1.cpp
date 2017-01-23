@@ -123,6 +123,7 @@ bool CannonSelected ;
 bool BucketRedSelected ;
 bool BucketGreenSelected ;
 bool RotateMirrorAllowed = true ;
+bool FreezeGame ;
 glm::vec3 SavedMouseCoor ;
 // Degree to Radians
 double D2R = acos((double)-1) /180.0 ;
@@ -359,7 +360,7 @@ void draw3DObject (struct VAO* vao)
 void keyboard (GLFWwindow* window, int key, int scancode, int action, int mods)
 {
      // Function is called first on GLFW_PRESS.
-     cout<<"Pressed key is "<<key<<endl ;
+    //  cout<<"Pressed key is "<<key<<endl ;
     if (action == GLFW_RELEASE)
     {
         switch (key) {
@@ -629,7 +630,7 @@ glm::vec3 FindCurrentDirection(glm::vec3 A,glm::vec3 B)
 }
 void draw (GLFWwindow* window)
 {
-    if(Pause) return ;
+    if(Pause||FreezeGame) return ;
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram (programID);
 
@@ -648,12 +649,12 @@ void draw (GLFWwindow* window)
     if(Lives == 0 || Score < LoosingScore)
     {
         cout<<"YOU LOOSE"<<endl ;
-        exit(0) ;
+        FreezeGame = true ;
     }
     if(Score >= WinningScore)
     {
         cout<<"YOU WIN"<<endl ;
-        exit(0) ;
+        FreezeGame = true ;
     }
     if(current_time - ScoreTimer >= 0.5)
     {
@@ -928,7 +929,7 @@ void CreateLaser(void)
     GameObject temp ;
     COLOR BaseBGColor = red ;
 
-    cout<<"Laser Shot"<<endl ;
+    // cout<<"Laser Shot"<<endl ;
     temp.width = 20 , temp.height = 5 ;
     temp.direction = Cannon[1].direction ;
     temp.speed = temp.direction * SpeedLaser ;
@@ -950,7 +951,7 @@ void MoveLasers(void)
         if(nose[1]<=GamePlayDownExtreme || nose[1]>=GamePlayUpExtreme || nose[0]<=LeftExtreme ||nose[0]>=RightExtreme)
             KillThem.pb(it.ID) ;
     }
-    for(auto id:KillThem) Lasers.erase(id),cout<<"Laser Killed"<<endl ;
+    for(auto id:KillThem) Lasers.erase(id);//cout<<"Laser Killed"<<endl ;
     KillThem.clear() ;
 }
 /*******************
