@@ -179,6 +179,7 @@ map<int,GameObject> Lasers ;
 vector< GameObject > Mirrors ;
 map<int,GameObject > Blocks ;
 vector< GameObject > Bucket ;
+vector< GameObject > LifeBlocks ;
 GLuint programID;
 
 
@@ -772,6 +773,21 @@ void draw (GLFWwindow* window)
         glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
         draw3DObject(it.object);
     }
+    FN(i,Lives)
+    {
+        auto it = LifeBlocks[i] ;
+        Matrices.model = glm::translate (it.location);
+        if(it.isRotating)
+        {
+            Matrices.model = glm::translate (it.CenterOfRotation*(float)-1 ) * Matrices.model ;
+            float theta = FindAngle(normalize(it.location - it.CenterOfRotation),it.direction) ;
+            Matrices.model = glm::rotate(theta, glm::vec3(0,0,1)) * Matrices.model ;
+            Matrices.model = glm::translate (it.CenterOfRotation) * Matrices.model ;
+        }
+        MVP = VP * Matrices.model; // MVP = p * V * M
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(it.object);
+    }
 }
 
 /* Initialise glfw window, I/O callbacks and the renderer to use */
@@ -1152,6 +1168,35 @@ void CheckForSelection(GLFWwindow* window)
         }
     }
 }
+/************************
+    LIVES
+************************/
+void CreateLifeBlocks(void)
+{
+    GameObject temp ;
+    COLOR BaseLifeColor = white ;
+
+    temp.height = 25 ,temp.width = 25 ;
+    temp.location = glm::vec3(-375,-275,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.direction = normalize(glm::vec3(0,1,0)) ;
+    temp.object =  createRectangle(BaseLifeColor,BaseLifeColor,BaseLifeColor,BaseLifeColor,temp.width,temp.height);
+    LifeBlocks.pb(temp) ;
+
+    temp.height = 25 ,temp.width = 25 ;
+    temp.location = glm::vec3(-340,-275,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.direction = normalize(glm::vec3(0,1,0)) ;
+    temp.object =  createRectangle(BaseLifeColor,BaseLifeColor,BaseLifeColor,BaseLifeColor,temp.width,temp.height);
+    LifeBlocks.pb(temp) ;
+
+    temp.height = 25 ,temp.width = 25 ;
+    temp.location = glm::vec3(-305,-275,0) ;
+    temp.CenterOfRotation = temp.location ;
+    temp.direction = normalize(glm::vec3(0,1,0)) ;
+    temp.object =  createRectangle(BaseLifeColor,BaseLifeColor,BaseLifeColor,BaseLifeColor,temp.width,temp.height);
+    LifeBlocks.pb(temp) ;
+}
 void initGL (GLFWwindow* window, int width, int height)
 {
     /* Objects should be created before any other gl function and shaders */
@@ -1163,6 +1208,7 @@ void initGL (GLFWwindow* window, int width, int height)
     CreateBackGround() ;
     CreateMirror() ;
     CreateBuckets() ;
+    CreateLifeBlocks() ;
     // Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
 	// Get a handle for our "MVP" uniform
